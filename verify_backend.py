@@ -52,16 +52,16 @@ def test_preprocessing():
     return f"{len(filtered)} tokens processed"
 
 def test_vader_sentiment():
-    from sentiment.vader_sentiment import analyze_sentiment
+    from sentiment.vader_sentiment import get_sentiment
     sample_news = "Company reports record profit and massive dividend payout."
-    score = analyze_sentiment(sample_news)
-    assert "compound" in score or "sentiment" in score or isinstance(score, (float, dict)), "Sentiment output format valid"
-    return f"Compound score evaluated"
+    score = get_sentiment(sample_news)
+    assert score is not None, "Sentiment score computed"
+    return f"Compound score: {score}"
 
 def test_event_detection():
-    from event_detection.detect_events import detect_corporate_event
+    from event_detection.detect_events import detect_event
     sample = "Board approves $500M buyout and merger deal with foreign investor."
-    event = detect_corporate_event(sample)
+    event = detect_event(sample)
     assert event is not None, "Event detection returned result"
     return f"Detected event: {event}"
 
@@ -69,17 +69,18 @@ def test_event_detection():
 # 2. TECHNICAL INDICATOR CALCULATIONS
 # ---------------------------------------------------
 def test_technical_indicators():
-    from indicators.moving_average import calculate_moving_average
+    from indicators.moving_average import calculate_ma
     from indicators.rsi import calculate_rsi
     from indicators.macd import calculate_macd
     
-    prices = pd.Series([100, 102, 101, 105, 107, 106, 110, 112, 115, 114, 118, 120, 119, 122, 125])
-    ma = calculate_moving_average(prices, window=5)
-    rsi = calculate_rsi(prices, period=5)
-    macd, signal = calculate_macd(prices, fast=5, slow=10, signal_window=3)
+    df_sample = pd.DataFrame({'Close': [100, 102, 101, 105, 107, 106, 110, 112, 115, 114, 118, 120, 119, 122, 125, 128, 130, 132, 135, 134, 138, 140, 142, 145, 148]})
+    df_ma = calculate_ma(df_sample.copy())
+    df_rsi = calculate_rsi(df_sample.copy())
+    df_macd = calculate_macd(df_sample.copy())
     
-    assert not ma.dropna().empty, "MA series calculated"
-    assert not rsi.dropna().empty, "RSI series calculated"
+    assert 'MA_20' in df_ma.columns, "MA_20 column calculated"
+    assert 'RSI' in df_rsi.columns, "RSI column calculated"
+    assert 'MACD' in df_macd.columns, "MACD column calculated"
     return f"MA/RSI/MACD computed successfully"
 
 # ---------------------------------------------------
@@ -131,7 +132,6 @@ def test_lstm_model_predict():
 def test_uncertainty_estimator():
     from prediction.uncertainty import MonteCarloUncertaintyEstimator
     estimator = MonteCarloUncertaintyEstimator(n_samples=5)
-    # Dummy mock prediction test
     res = estimator.estimate_uncertainty(None, None)
     assert "prediction_prob" in res, "Uncertainty estimator returned dictionary"
     return f"Confidence score: {res['confidence_pct']}%"
