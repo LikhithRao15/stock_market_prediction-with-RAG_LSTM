@@ -24,12 +24,23 @@ from plotly.subplots import make_subplots
 
 from sklearn.preprocessing import MinMaxScaler
 
-from ta.momentum import RSIIndicator
-from ta.trend import MACD, SMAIndicator
-from chatbot.chatbot import StockAssistantChatbot
+# Fast Native Technical Indicators (0ms overhead)
+def calculate_rsi(series, period=14):
+    delta = series.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    rs = gain / (loss + 1e-10)
+    return 100 - (100 / (1 + rs))
 
-from explainability.xai_explainer import FeatureAttributionExplainer
-from prediction.uncertainty import MonteCarloUncertaintyEstimator
+def calculate_macd(series, fast=12, slow=26):
+    exp1 = series.ewm(span=fast, adjust=False).mean()
+    exp2 = series.ewm(span=slow, adjust=False).mean()
+    return exp1 - exp2
+
+def calculate_sma(series, window=20):
+    return series.rolling(window=window).mean()
+
+from chatbot.chatbot import StockAssistantChatbot
 from portfolio.portfolio_advisor import PortfolioRecommendationEngine
 from risk.risk_analyzer import calculate_stock_risk_metrics
 from market_regime.regime_detector import MarketRegimeDetector
@@ -500,10 +511,9 @@ low_series = df['Low'].astype(float)
 volume_series = df['Volume'].astype(float)
 
 # Calculate Technical Indicators
-df['RSI'] = RSIIndicator(close=close_series).rsi()
-macd_obj = MACD(close=close_series)
-df['MACD'] = macd_obj.macd()
-df['MA_20'] = SMAIndicator(close=close_series, window=20).sma_indicator()
+df['RSI'] = calculate_rsi(close_series)
+df['MACD'] = calculate_macd(close_series)
+df['MA_20'] = calculate_sma(close_series, window=20)
 
 # Engineer 8 Relative Features matching model training
 df['Return'] = close_series.pct_change()
@@ -718,10 +728,9 @@ with tab_prediction:
             low_intra = df_intra['Low'].astype(float)
             vol_intra = df_intra['Volume'].astype(float)
 
-            df_intra['RSI'] = RSIIndicator(close=close_intra).rsi()
-            macd_intra = MACD(close=close_intra)
-            df_intra['MACD'] = macd_intra.macd()
-            df_intra['MA_20'] = SMAIndicator(close=close_intra, window=20).sma_indicator()
+            df_intra['RSI'] = calculate_rsi(close_intra)
+            df_intra['MACD'] = calculate_macd(close_intra)
+            df_intra['MA_20'] = calculate_sma(close_intra, window=20)
             df_intra['Return'] = close_intra.pct_change()
             df_intra['MA_20_ratio'] = close_intra / df_intra['MA_20'] - 1
             df_intra['Close_Open'] = close_intra / open_intra - 1
@@ -775,6 +784,7 @@ with tab_prediction:
                             st.error("LSTM Model unavailable.")
                         else:
                             with st.spinner("Executing neural network tensor computation..."):
+                                import tensorflow as tf
                                 with tf.device('/CPU:0'):
                                     raw_score = float(model(seq_intra_3d, training=False).numpy()[0][0])
 
@@ -857,6 +867,7 @@ with tab_prediction:
                         st.error("LSTM Model binary unavailable.")
                     else:
                         with st.spinner("Executing neural network tensor computation..."):
+                            import tensorflow as tf
                             with tf.device('/CPU:0'):
                                 raw_out = model(latest_sequence_3d, training=False).numpy()
                                 score = float(raw_out[0][0])
