@@ -347,8 +347,7 @@ def load_lstm_model():
         st.error(f"Error loading model: {e}")
         return None
 
-model = load_lstm_model()
-
+# Model and Chatbot are lazy-loaded inside their respective tabs on demand!
 @st.cache_resource
 def load_chatbot():
     try:
@@ -357,8 +356,6 @@ def load_chatbot():
     except Exception as e:
         st.warning(f"RAG Chatbot initialized with basic fallback: {e}")
         return None
-
-chatbot = load_chatbot()
 
 # ---------------------------------------------------
 # SIDEBAR CONFIGURATION (NSE STOCK SELECTOR)
@@ -685,6 +682,7 @@ with tab_overview:
 # TAB 2: AI LSTM FORECAST (SINGLE TIME INTERVAL)
 # ===================================================
 with tab_prediction:
+    model = load_lstm_model()
     st.markdown("### 🔮 Single Time Interval Forecast Engine")
     st.write("Select **one target interval** for price direction & target forecast.")
 
@@ -999,9 +997,9 @@ with tab_indicators:
 # ---------------------------------------------------
 # FLOATING AI ASSISTANT CHATBOT OVERLAY (BOTTOM-RIGHT)
 # ---------------------------------------------------
-doc_cnt = chatbot.rag_engine.get_doc_count() if hasattr(chatbot, 'rag_engine') else 0
-
 with st.popover("😊", help="AI Financial Assistant"):
+    chatbot = load_chatbot()
+    doc_cnt = chatbot.rag_engine.get_doc_count() if (chatbot and hasattr(chatbot, 'rag_engine')) else 0
     st.markdown("""
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px;">
         <span style="font-weight: 700; font-size: 1.1rem; color: #38bdf8;">🤖 AI Financial Assistant</span>
