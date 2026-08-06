@@ -1,9 +1,13 @@
 import os
 import sys
 
-# Force CPU & disable GPU/MPS thread locks on macOS
+# Force CPU & disable GPU/MPS thread locks and Tokenizer deadlocks on macOS
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # Ensure project root is in sys.path when running from any directory
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -336,7 +340,11 @@ model = load_lstm_model()
 
 @st.cache_resource
 def load_chatbot():
-    return StockAssistantChatbot()
+    try:
+        return StockAssistantChatbot()
+    except Exception as e:
+        st.warning(f"RAG Chatbot initialized with basic fallback: {e}")
+        return None
 
 chatbot = load_chatbot()
 
