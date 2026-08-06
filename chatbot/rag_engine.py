@@ -3,10 +3,9 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
+FAISS_AVAILABLE = True
 try:
     import faiss
-    from sentence_transformers import SentenceTransformer
-    FAISS_AVAILABLE = True
 except ImportError:
     FAISS_AVAILABLE = False
 

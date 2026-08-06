@@ -40,7 +40,6 @@ def calculate_macd(series, fast=12, slow=26):
 def calculate_sma(series, window=20):
     return series.rolling(window=window).mean()
 
-from chatbot.chatbot import StockAssistantChatbot
 from portfolio.portfolio_advisor import PortfolioRecommendationEngine
 from risk.risk_analyzer import calculate_stock_risk_metrics
 from market_regime.regime_detector import MarketRegimeDetector
@@ -353,6 +352,7 @@ model = load_lstm_model()
 @st.cache_resource
 def load_chatbot():
     try:
+        from chatbot.chatbot import StockAssistantChatbot
         return StockAssistantChatbot()
     except Exception as e:
         st.warning(f"RAG Chatbot initialized with basic fallback: {e}")
