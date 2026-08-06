@@ -915,7 +915,7 @@ with tab_prediction:
         st.metric("Training Dataset", "220 Sequences", "5-Day Lookback Windows")
 
     with st.expander("❓ How to Verify if a Prediction is Right or Wrong"):
-        st.markdown("""
+        st.markdown(r"""
         **1. Check Tomorrow's Closing Price**:
         - At market close, check the actual price ($P_{actual}$) vs current price ($P_{start}$).
         

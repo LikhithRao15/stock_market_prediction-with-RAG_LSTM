@@ -72,32 +72,25 @@ class FinancialRAGEngine:
                 event = str(row.get("event", ""))
                 text_corpus.append(f"{title} {content} {event}".strip())
 
-            # Attempt SentenceTransformers + FAISS Index Construction
+            # 1. Build TF-IDF matrix first as ultra-fast instant search engine (0.02s)
+            self.tfidf_vectorizer = TfidfVectorizer(ngram_range=(1, 2), stop_words="english", max_features=5000)
+            self.tfidf_matrix = self.tfidf_vectorizer.fit_transform(text_corpus)
+            self.is_indexed = True
+
+            # 2. Attempt SentenceTransformers + FAISS Index Construction if cached or fast
             if FAISS_AVAILABLE:
                 try:
                     emb_cache_path = os.path.join(os.path.dirname(self.data_path), "faiss_embeddings.npy")
                     if os.path.exists(emb_cache_path):
                         embeddings = np.load(emb_cache_path)
-                    else:
-                        print(f"[RAG Engine] Loading SentenceTransformer model '{self.model_name}'...")
-                        self.st_model = SentenceTransformer(self.model_name)
-                        embeddings = self.st_model.encode(text_corpus, show_progress_bar=False, convert_to_numpy=True)
-                        faiss.normalize_L2(embeddings)
-                        np.save(emb_cache_path, embeddings)
-
-                    self.embeddings = embeddings.astype(np.float32)
-                    dim = self.embeddings.shape[1]
-                    self.faiss_index = faiss.IndexFlatIP(dim)
-                    self.faiss_index.add(self.embeddings)
-                    print(f"[RAG Engine] Successfully loaded/built FAISS semantic index with {len(text_corpus)} documents (dim={dim}).")
+                        self.embeddings = embeddings.astype(np.float32)
+                        dim = self.embeddings.shape[1]
+                        self.faiss_index = faiss.IndexFlatIP(dim)
+                        self.faiss_index.add(self.embeddings)
+                        print(f"[RAG Engine] Loaded FAISS index with {len(text_corpus)} docs (dim={dim}).")
                 except Exception as e:
-                    print(f"[RAG Engine Warning] FAISS/SentenceTransformers initialization failed: {e}. Falling back to TF-IDF.")
+                    print(f"[RAG Engine Warning] FAISS init fallback to TF-IDF: {e}")
                     self.faiss_index = None
-
-            # Always build TF-IDF matrix as fail-safe fallback
-            self.tfidf_vectorizer = TfidfVectorizer(ngram_range=(1, 2), stop_words="english", max_features=5000)
-            self.tfidf_matrix = self.tfidf_vectorizer.fit_transform(text_corpus)
-            self.is_indexed = True
 
         except Exception as e:
             print(f"[RAG Engine Error] Failed to build vector index: {e}")
