@@ -3,7 +3,8 @@ import sys
 
 # Force CPU & disable GPU/MPS thread locks and Tokenizer deadlocks on macOS
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -21,8 +22,6 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-import tensorflow as tf
-from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 
 from ta.momentum import RSIIndicator
@@ -328,7 +327,9 @@ def load_lstm_model():
         except Exception as err:
             st.error(f"Automatic training failed: {err}")
     try:
-        # Load compiled model with CPU context
+        # Lazy load tensorflow & keras model on demand
+        import tensorflow as tf
+        from tensorflow.keras.models import load_model
         with tf.device('/CPU:0'):
             model = load_model(model_path, compile=False)
         return model
